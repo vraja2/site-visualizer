@@ -18,19 +18,26 @@ import webapp2
 import re
 from google.appengine.api import users
 
+
+HOME_PAGE_HTML = """\
+<html>
+    <body>
+        <form action="/run_script" method="post">
+            <div><textarea name="content" rows="3" cols="100"></textarea></div>
+            <div><input type="submit" value="Visualize"/></div>
+        </form>
+    </body>
+</html>
+"""
+
 class MainHandler(webapp2.RequestHandler):
     def get(self):
-        user = users.get_current_user()
-        if user:
-        	self.response.write("Hello, " + user.nickname())
-        else:
-        	self.redirect(users.create_login_url(self.request.uri))
+       self.response.write(HOME_PAGE_HTML)
 
 class StupidHandler(webapp2.RequestHandler):
-	def get(self):
+	def post(self):
 		self.response.headers['Content-Type'] = 'text/plain'
-		self.response.write("stupid")
-		self.response.write(self.request)
+		self.response.write(self.request.get('content'))
 
 
 app = webapp2.WSGIApplication([

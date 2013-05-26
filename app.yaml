@@ -9,7 +9,7 @@ handlers:
   static_files: favicon.ico
   upload: favicon\.ico
 
-- url: /test
+- url: /run_script
   script: visualizer.py
 
 - url: /.*

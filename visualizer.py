@@ -2,7 +2,11 @@ import sys
 import re
 from bs4 import BeautifulSoup
 import urllib2
+from urllib2 import urlopen
 import operator
+import cgi
+from urllib2 import HTTPError
+import requests
 
 #sys.path.insert(0, '')
 #global hashtable for storing the lanugage model
@@ -34,7 +38,7 @@ def parser(text):
 	return retval
 
 #produce a dictionary with each word mapping to its count/probability
-def hash_the_shit(input):
+def hash_page(input):
 	site_hash = {}
 	for x in xrange(1,len(input[0])):
 		if input[0][x] != '':
@@ -44,32 +48,66 @@ def hash_the_shit(input):
 				site_hash[input[0][x]] = 1
 	return site_hash
 
+#check if an input url is valid
+def is_valid_url(url):
+    import re
+    regex = re.compile(
+        r'^(?:http|ftp)s?://' # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
+        r'localhost|' #localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
+        r'(?::\d+)?' # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    return url is not None and regex.search(url) is not None
+
 #where all the magic starts
 if __name__ == "__main__":
-	#initialize the language model in the hashtable
-	init_lang()
-	#I guess headers are needed to spoof sources like wikipedia?
-	req = urllib2.Request('http://en.wikipedia.org/wiki/Kevin_Durant', headers={'User-Agent' : "Magic Browser"}) 
-	con = urllib2.urlopen(req)
-	htmlsource = con.read()
-	#make a beautifulsoup object
-	soup = BeautifulSoup(htmlsource)
-	#remove javascript stuff
-	for s in soup('script'):
-		s.extract()
-	#store just the text, with no javascript
-	text = soup.get_text().lower()
-	#parse for whitespace, non-alphanumeric, etc. 
-	output = parser(text.encode('utf-8'))		
-	i = 0
-	output = output.splitlines()
-	output = [k.split(" ") for k in output]
-	length = len(output[0])
-	print length
-	site_hash = hash_the_shit(output)	
-	#we now have the hash of the site. We can compute language models
-	#sort the dictionary in descending order
-	sorted_hash = sorted(site_hash.iteritems(), key=operator.itemgetter(1), reverse=True)
-	#we have an array of tuples. to access the word in the tuple we do sorted_hash[0][0]
-	print sorted_hash
+	form = cgi.FieldStorage()
+	form_content = form.getvalue('content')
+	if is_valid_url(form_content) == False:
+		print "INVALID URL1"
+	else:
+		r = requests.head(form_content)
+		if (r.status_code/100 >= 4):
+			print "INVALID URL"
+		else:
+			#initialize the language model in the hashtable
+			init_lang()
+			#I guess headers are needed to spoof sources like wikipedia?
+			req = urllib2.Request(form_content, headers={'User-Agent' : "Magic Browser"}) 
+			con = urllib2.urlopen(req)
+			htmlsource = con.read()
+			#make a beautifulsoup object
+			soup = BeautifulSoup(htmlsource)
+			#remove javascript stuff
+			for s in soup('script'):
+				s.extract()
+			#store just the text, with no javascript
+			text = soup.get_text().lower()
+			#parse for whitespace, non-alphanumeric, etc. 
+			output = parser(text.encode('utf-8'))		
+			i = 0
+			output = output.splitlines()
+			output = [k.split(" ") for k in output]
+			length = len(output[0])
+			print length
+			site_hash = hash_page(output)	
+			#we now have the hash of the site. We can compute language models
+			#sort the dictionary in descending order
+			sorted_hash = sorted(site_hash.iteritems(), key=operator.itemgetter(1), reverse=True)
+			#we have an array of tuples. to access the word in the tuple we do sorted_hash[0][0]
+			print sorted_hash
+
+			HOME_PAGE_HTML = """\
+			<html>
+			    <body>
+			        <form action="/run_script" method="post">
+			            <div><textarea name="content" rows="3" cols="100"></textarea></div>
+			            <div><input type="submit" value="Visualize"/></div>
+			        </form>
+			    </body>
+			</html>
+			"""
+			print HOME_PAGE_HTML
+
 
