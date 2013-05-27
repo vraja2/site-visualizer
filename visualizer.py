@@ -64,12 +64,15 @@ def is_valid_url(url):
 if __name__ == "__main__":
 	form = cgi.FieldStorage()
 	form_content = form.getvalue('content')
+	form_content = "http://www." + form_content
+	#check formatting of the url
 	if is_valid_url(form_content) == False:
-		print "INVALID URL1"
+		print "INVALID FORMAT"
 	else:
 		r = requests.head(form_content)
+		#bad status (i.e 404, 500, etc.)
 		if (r.status_code/100 >= 4):
-			print "INVALID URL"
+			print "INVALID STATUS"
 		else:
 			#initialize the language model in the hashtable
 			init_lang()
@@ -100,12 +103,13 @@ if __name__ == "__main__":
 
 			HOME_PAGE_HTML = """\
 			<html>
-			    <body>
-			        <form action="/run_script" method="post">
-			            <div><textarea name="content" rows="3" cols="100"></textarea></div>
-			            <div><input type="submit" value="Visualize"/></div>
-			        </form>
-			    </body>
+		    <body>
+		        <form action="/run_script" method="post">
+		            <br>Search Again!<br>
+		            http://www.<input type="text" name="content" rows="3" cols="100">
+		            <div><input type="submit" value="Visualize"/></div>
+		        </form>
+		    </body>
 			</html>
 			"""
 			print HOME_PAGE_HTML
