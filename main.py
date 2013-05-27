@@ -23,7 +23,7 @@ HOME_PAGE_HTML = """\
 <html>
     <body>
         <form action="/run_script" method="post">
-            <div><textarea name="content" rows="3" cols="100"></textarea></div>
+            http://www.<input type="text" name="content" rows="3" cols="100">
             <div><input type="submit" value="Visualize"/></div>
         </form>
     </body>
