@@ -7,11 +7,14 @@ import operator
 import cgi
 from urllib2 import HTTPError
 import requests
-
-#sys.path.insert(0, '')
+import contextlib
+import lxml
+import lxml.html as LH
+import lxml.html.clean as clean
+import json
+import collections
 #global hashtable for storing the lanugage model
 backgroundModel = {}
-
 #initialize the language model
 def init_lang():
 	file = open('./wikiOccurance.txt', 'r')
@@ -25,7 +28,7 @@ def init_lang():
 		#hash it so that a word maps to a count/probability
 		#the first element of the hashtable will be the total number of words in the corpus
 		backgroundModel[word] = probability
-
+ 
 #parse the html text
 def parser(text):
 	#remove all non alphanumeric
@@ -60,6 +63,12 @@ def is_valid_url(url):
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
     return url is not None and regex.search(url) is not None
 
+def jsonify(sorted_tuples):
+	json_list = []
+	for x in xrange(1,20):
+		json_list.append({'word': sorted_tuples[x][0], 'count': sorted_tuples[x][1]})
+	return json_list
+
 #where all the magic starts
 if __name__ == "__main__":
 	form = cgi.FieldStorage()
@@ -80,6 +89,9 @@ if __name__ == "__main__":
 			req = urllib2.Request(form_content, headers={'User-Agent' : "Magic Browser"}) 
 			con = urllib2.urlopen(req)
 			htmlsource = con.read()
+			#clean up the html to prevent bad start/end tags
+			cleaner=clean.Cleaner()
+    			htmlsource=cleaner.clean_html(htmlsource) 	
 			#make a beautifulsoup object
 			soup = BeautifulSoup(htmlsource)
 			#remove javascript stuff
@@ -93,25 +105,82 @@ if __name__ == "__main__":
 			output = output.splitlines()
 			output = [k.split(" ") for k in output]
 			length = len(output[0])
-			print length
-			site_hash = hash_page(output)	
+		        print ""
+			#print length
+			site_hash = hash_page(output)
 			#we now have the hash of the site. We can compute language models
 			#sort the dictionary in descending order
 			sorted_hash = sorted(site_hash.iteritems(), key=operator.itemgetter(1), reverse=True)
+			json_sorted = json.dumps(jsonify(sorted_hash))
+			#print json_sorted
 			#we have an array of tuples. to access the word in the tuple we do sorted_hash[0][0]
-			print sorted_hash
+			RESULT_HTML = """\
+			<html>
+			<head>
+			<style type ="text/css">
+			div.bar {
+				display: inline-block;
+				width: 20px;
+				height: 75px;
+				background-color: teal;
+				margin-right: 2px;
+			}
+			</style>
+			</head>
+			<body>
+			<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+			<script type="text/javascript">
+			var test = %s
+			var w = 1200;
+			var h = 200;
+			var y = d3.scale.linear()
+				  .domain([0,test[0].count])
+				  .range([0,h-15]);
+			var svg = d3.select("body")
+				    .append("svg")
+				    .attr("width", w)
+				    .attr("height", h);
+			svg.selectAll("text")
+			   .data(test)
+			   .enter()
+			   .append("text")
+			   .text(function(d) { return d.word; })
+			   .attr("x",  function(d,i) { return i * (w/test.length);})
+			   .attr("y", function(d) { return h - y(d.count) -5; });
+		           //.attr("text-anchor", "start");
+			   //.attr("transform", function(d) {return "rotate(90)"; })
+			 
+			svg.selectAll("text")
+			   .data(test)
+			   .enter()
+			   .append("text")
+			   .text(function(d) { return d.count; })
+			   .attr("x", function(d,i) { return i * (w/test.length);})
+			   .attr("y", function(d) { return h - y(d.count) -5; });
 
+		        svg.selectAll("rect")
+			   .data(test) //import data
+			   .enter() 
+			   .append("rect") //create a rectangular svg
+			   .attr("x", 0) 
+			   .attr("width", 50) //width of each rect is 20px
+			   .attr("y", function(d) { return h - y(d.count); })
+			   .attr("height", function(d) { return y(d.count); })
+			   .attr("x", function(d,i) { return i * (w/test.length); });
+			</script>
+			</body>
+			</html>
+			""" % json_sorted
 			HOME_PAGE_HTML = """\
 			<html>
-		    <body>
+		    	<body>
 		        <form action="/run_script" method="post">
 		            <br>Search Again!<br>
 		            http://www.<input type="text" name="content" rows="3" cols="100">
 		            <div><input type="submit" value="Visualize"/></div>
 		        </form>
-		    </body>
+		    	</body>
 			</html>
 			"""
-			print HOME_PAGE_HTML
-
+			print RESULT_HTML
 
