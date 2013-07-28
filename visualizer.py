@@ -133,6 +133,7 @@ if __name__ == "__main__":
 			var test = %s
 			var w = 1200;
 			var h = 200;
+			var colors = ["steelblue", "brown", "red", "green", "blue", "yellow", "grey", "black", "orange", "purple"];
 			var y = d3.scale.linear()
 				  .domain([0,test[0].count])
 				  .range([0,h-15]);
@@ -162,8 +163,9 @@ if __name__ == "__main__":
 			   .data(test) //import data
 			   .enter() 
 			   .append("rect") //create a rectangular svg
+			   .attr("fill", function(d,i) { return "rgb(0,0," + (25*i) + ")";})
 			   .attr("x", 0) 
-			   .attr("width", 50) //width of each rect is 20px
+			   .attr("width", 50) //width of each rect is 20pxhttp://d3js.org/
 			   .attr("y", function(d) { return h - y(d.count); })
 			   .attr("height", function(d) { return y(d.count); })
 			   .attr("x", function(d,i) { return i * (w/test.length); });
