@@ -18,11 +18,10 @@ import webapp2
 import re
 from google.appengine.api import users
 
-
 HOME_PAGE_HTML = """\
 <html>
-    <body>
-        <form action="/run_script" method="post">
+    <body> 
+	<form action="/run_script" method="post">
             http://www.<input type="text" name="content" rows="3" cols="100">
             <div><input type="submit" value="Visualize"/></div>
         </form>
